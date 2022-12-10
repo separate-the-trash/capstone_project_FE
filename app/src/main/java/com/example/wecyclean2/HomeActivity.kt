@@ -1,12 +1,18 @@
 package com.example.wecyclean2
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import android.widget.TimePicker
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.ComponentActivity.*
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -50,12 +56,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavController
-import com.chargemap.compose.numberpicker.AMPMHours
-import com.chargemap.compose.numberpicker.Hours
-import com.chargemap.compose.numberpicker.HoursNumberPicker
+import com.chargemap.compose.numberpicker.*
 import com.example.wecyclean2.ui.theme.Wecyclean2Theme
 import kotlinx.coroutines.launch
+import java.util.*
 
 
 //@Composable
@@ -78,9 +84,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 
-fun Home(navController: NavController,markerList: MutableList<MarkerModel>) {
-    val recycleDayCheck = remember { mutableStateListOf<Boolean>(false,false,false,false,false)}
-    val recyclePushCheck = remember { mutableStateOf<Boolean>(false)}
+fun Home(navController: NavController,markerList: MutableList<MarkerModel>,alarmManager:AlarmManager,intent:Intent,context: Context) {
+
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Closed)
     var searchState by remember { mutableStateOf("")}
     val scope = rememberCoroutineScope()
@@ -90,7 +95,7 @@ fun Home(navController: NavController,markerList: MutableList<MarkerModel>) {
         drawerState = drawerState,
         drawerContent = {
             // 드로어 내용
-            drawbleContent(recycleDayCheck,recyclePushCheck)
+            drawbleContent(alarmManager,intent,context)
         }
     ) {
         // 화면 내용
@@ -369,10 +374,10 @@ fun Home(navController: NavController,markerList: MutableList<MarkerModel>) {
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun drawbleContent(recycleDayCheck:MutableList<Boolean>,recyclePushCheck:MutableState<Boolean>) {
+fun drawbleContent(alarmManager: AlarmManager,intent: Intent,context2:Context) {
 
     val context = LocalContext.current
-    val recycleDay = mutableListOf<String>("월","화","수","목","금")
+
 
     Box(
         modifier = Modifier
@@ -406,6 +411,7 @@ fun drawbleContent(recycleDayCheck:MutableList<Boolean>,recyclePushCheck:Mutable
                 fontWeight = FontWeight.Normal,
                 fontSize = 18.sp
             )
+
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -420,6 +426,7 @@ fun drawbleContent(recycleDayCheck:MutableList<Boolean>,recyclePushCheck:Mutable
                         ) {
 
                             recycleDayCheck[index] = !recycleDayCheck[index]
+                            recyclePushCheck.value = false
                             //Toast.makeText(context, "클릭", Toast.LENGTH_SHORT).show()
                         },
                         text = day,
@@ -461,7 +468,12 @@ fun drawbleContent(recycleDayCheck:MutableList<Boolean>,recyclePushCheck:Mutable
                 )
                 Switch(checked = recyclePushCheck.value, onCheckedChange = {
                     recyclePushCheck.value = it
+                    if(it == true) {
+                        setAlarms(alarmManager,context2,intent)
+                        Toast.makeText(context, "알람이 설정되었습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 })
+
             }
         }
     }
@@ -469,16 +481,16 @@ fun drawbleContent(recycleDayCheck:MutableList<Boolean>,recyclePushCheck:Mutable
 
 @Composable
 fun ShowTimePicker() {
-    var pickerValue by remember { mutableStateOf<Hours>(AMPMHours(1, 1, AMPMHours.DayTime.AM )) }
 
-    HoursNumberPicker(
+    FullHoursNumberPicker(
         modifier= Modifier
             .fillMaxWidth()
             .padding(20.dp, 0.dp, 20.dp, 0.dp),
         dividersColor = c_main_gray,
-        value = pickerValue,
+        value = pickerValue.value,
         onValueChange = {
-            pickerValue = it
+            pickerValue.value= it as FullHours
+            recyclePushCheck.value = false
         },
         hoursDivider = {
             Text(
@@ -493,7 +505,9 @@ fun ShowTimePicker() {
                 textAlign = TextAlign.Center,
                 text = "분"
             )
-        }
+        },
+        hoursRange = 0..23
+
     )
 
 }
@@ -683,4 +697,38 @@ fun CategoryItems(
         Text(text = title, fontSize = 16.sp)
     }
 
+}
+
+// 알람을 갱신합니다.
+fun setAlarms(alarmManager: AlarmManager,context:Context,intent: Intent) {
+
+    Log.e("",pickerValue.value.hours.toString())
+    Log.e("",pickerValue.value.minutes.toString())
+
+    for(i in 0..4) {
+        if(recycleDayCheck[i] == true){
+            Log.e("",i.toString()+"set alarm")
+            val pendingIntent = PendingIntent.getBroadcast(
+                context, i, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"),Locale.KOREA).apply {
+                timeInMillis = System.currentTimeMillis()
+                set(Calendar.DAY_OF_WEEK,i+2)
+                set(Calendar.HOUR_OF_DAY,pickerValue.value.hours)
+                set(Calendar.MINUTE,pickerValue.value.minutes)
+                set(Calendar.SECOND,0)
+            }
+            Log.e("",calendar.time.toString())
+//            alarmManager.set(
+//                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+//                SystemClock.elapsedRealtime() + 1000 * 5,
+//                pendingIntent)
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+//                AlarmManager.INTERVAL_DAY,
+                pendingIntent)
+        }
+    }
 }

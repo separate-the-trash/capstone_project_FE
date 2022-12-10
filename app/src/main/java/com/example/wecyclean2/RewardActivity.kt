@@ -207,7 +207,7 @@ fun Reward(navController: NavController) {
                                                 contentPadding = PaddingValues(0.dp),
                                                 onClick =
                                                 {
-
+                                                    usepoint(uid_id,100,navController, context )
                                                 },
                                                 colors = ButtonDefaults.buttonColors(backgroundColor = c_sub_green)
                                             ) {
