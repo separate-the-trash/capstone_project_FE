@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -37,7 +36,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalContext
@@ -49,24 +47,45 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import coil.compose.rememberImagePainter
-import com.google.accompanist.pager.*
+import com.chargemap.compose.numberpicker.AMPMHours
+import com.chargemap.compose.numberpicker.FullHours
+import com.chargemap.compose.numberpicker.Hours
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.PagerState
+import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+val monday_alarm = booleanPreferencesKey("MondayAlarmCheck")
+val monday_alarm_time = longPreferencesKey("MondayAlarmTime")
+
 
 val notosanskr = FontFamily(
     Font(R.font.notosanskrlight, FontWeight.Thin),
@@ -82,6 +101,10 @@ val c_main_gray = Color(0xFF95A5A6)
 val c_light_gray = Color(0xFFD9D9D9)
 val c_light_red = Color(0xFFDD5353)
 val c_bright_gray = Color(0xFFE4E8E8)
+val recycleDay = mutableListOf<String>("월","화","수","목","금")
+val recycleDayCheck = mutableStateListOf<Boolean>(false,false,false,false,false)
+val recyclePushCheck = mutableStateOf<Boolean>(false)
+var pickerValue =  mutableStateOf<FullHours>(FullHours(1, 1))
 
 var uid_id=0
 var uid=""
@@ -89,6 +112,7 @@ var upoint=0
 var temp_uid = "aa"
 var temp_upw = "bb"
 var isPermission = 0
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var outputDirectory: File
@@ -130,25 +154,51 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+
+
+        //Datastor에서 저장된 알람 가져오기
+//        val isCheck : Flow<Boolean> = this.dataStore.data
+//            .map { preferences ->
+//                preferences[monday_alarm] ?: false
+//            }
+//        GlobalScope.launch {
+//            Log.e("",isCheck.first().toString())
+//        }
+
         //알람 설정
+
         val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-
         val intent = Intent(this,MyReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            this, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT
-        )
 
-        val calendar = Calendar.getInstance().apply {
-            timeInMillis = System.currentTimeMillis()
-            set(Calendar.HOUR_OF_DAY,21)
-            set(Calendar.MINUTE,6)
-        }
-        alarmManager.setRepeating(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            AlarmManager.INTERVAL_DAY * 7,
-            pendingIntent)
+//        val pendingIntent = PendingIntent.getBroadcast(
+//           this, 0, intent,
+//            PendingIntent.FLAG_UPDATE_CURRENT
+//        )
+//        alarmManager.set(
+//            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+//            SystemClock.elapsedRealtime() + 1000 * 5,
+//            pendingIntent)
+
+//        val pendingIntent = PendingIntent.getBroadcast(
+//            this, 0, intent,
+//            PendingIntent.FLAG_UPDATE_CURRENT
+//        )
+//        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"),Locale.KOREA).apply {
+//            timeInMillis = System.currentTimeMillis()
+//            set(Calendar.HOUR_OF_DAY,22)
+//            set(Calendar.MINUTE,53)
+//            set(Calendar.SECOND,0)
+//        }
+//        Log.e("",calendar.time.toString())
+//        alarmManager.setRepeating(
+//            AlarmManager.RTC_WAKEUP,
+//            calendar.timeInMillis,
+//           AlarmManager.INTERVAL_DAY,
+//            PendingIntent.getBroadcast(
+//                this, 0, intent,
+//                PendingIntent.FLAG_UPDATE_CURRENT
+//            ))
+
 
         setContent {
             //마커 리스트
@@ -169,7 +219,7 @@ class MainActivity : ComponentActivity() {
                 }
                 composable("Home") { backStackEntry ->
                     shouldShowPhoto.value = false
-                    Home(navController=navController,markerList)
+                    Home(navController=navController,markerList,alarmManager,intent,this@MainActivity)
                 }
                 composable("Map") {
                     Maps(navController,markerList)
@@ -263,7 +313,6 @@ fun Intro(navController: NavController) {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun Main(navController: NavController) {
-
     val isLogin = remember { mutableStateOf(false)}
 
     //권한 설정

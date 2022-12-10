@@ -39,7 +39,7 @@ class MyReceiver : BroadcastReceiver() {
         )
 
         val builder = NotificationCompat.Builder(context, "notification_channel")
-            .setSmallIcon(R.drawable.ic_launcher_background) // 아이콘
+            .setSmallIcon(R.drawable.coin_icon) // 아이콘
             .setContentTitle("분리수거 할 시간입니다.") // 제목
             .setContentText("설정해놓은 분리수거 시간입니다.") // 내용
             .setContentIntent(contentPendingIntent)
