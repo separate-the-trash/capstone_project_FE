@@ -1,18 +1,28 @@
 package com.example.wecyclean2
 
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.media.MediaScannerConnection
+import android.net.Uri
+import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat.getDrawable
 import androidx.navigation.NavController
-import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
+
 
 //테스트용 게시글 모델
 data class DataModel(
@@ -88,13 +98,13 @@ data class PointModel(
 )
 //포인트 반환모델
 data class PointReturnModel(
-    var id:Int,
-    var point:Int,
-    var message:String
+    var id: Int,
+    var point: Int,
+    var message: String,
 )
 // 서버 주소 안드로이드의 localhost가 10.0.2.2
-val base_url = "http://10.0.2.2:8080/"
-//val base_url = "http://172.30.1.44:8080/"
+//val base_url = "http://10.0.2.2:8080/"
+val base_url = "http://172.30.1.28:8080/"
 
 
 interface RetrofitAPI {
@@ -153,7 +163,7 @@ fun registerAccount(username:String,password:String,navController: NavController
 
         override fun onResponse(
             call: Call<AccountModel?>?,
-            response: Response<AccountModel?>
+            response: Response<AccountModel?>,
         ) {
             if (response.isSuccessful) {
                 Log.e("","회원가입 성공!")
@@ -236,7 +246,7 @@ fun getPostList(postList:MutableList<PostModel>) {
     call!!.enqueue(object : Callback<List<PostModel>?> {
         override fun onResponse(
             call: Call<List<PostModel>?>?,
-            response: Response<List<PostModel>?>?
+            response: Response<List<PostModel>?>?,
         ) {
             if (response != null) {
                 if (response.isSuccessful) {
@@ -277,7 +287,7 @@ fun addPost(userid:String,title:String,content:String) {
 
         override fun onResponse(
             call: Call<Int?>?,
-            response: Response<Int?>
+            response: Response<Int?>,
         ) {
             if (response.isSuccessful) {
 
@@ -311,7 +321,7 @@ fun deletePost(postid:String,userid:String,postList: MutableList<PostModel>) {
 
         override fun onResponse(
             call: Call<Int?>?,
-            response: Response<Int?>
+            response: Response<Int?>,
         ) {
             if (response.isSuccessful) {
                 Log.e("","글삭제 성공!")
@@ -346,7 +356,7 @@ fun addReply(postid:String,userid:String,content:String,postList: MutableList<Po
 
         override fun onResponse(
             call: Call<Void?>?,
-            response: Response<Void?>
+            response: Response<Void?>,
         ) {
             if (response.isSuccessful) {
 
@@ -375,7 +385,7 @@ fun getMap(markerList:MutableList<MarkerModel>,navController: NavController) {
     call!!.enqueue(object : Callback<List<MarkerModel>?> {
         override fun onResponse(
             call: Call<List<MarkerModel>?>?,
-            response: Response<List<MarkerModel>?>?
+            response: Response<List<MarkerModel>?>?,
         ) {
             if (response != null) {
                 if (response.isSuccessful) {
@@ -400,7 +410,7 @@ fun getMap(markerList:MutableList<MarkerModel>,navController: NavController) {
 }
 
 
-fun usepoint(userid_id:Int,reward:Int,navController:NavController,context:Context) {
+fun usepoint(userid_id:Int,reward:Int,navController:NavController,context:Context,outputdirectory:File) {
     val retrofit = Retrofit.Builder()
         .baseUrl(base_url) // 기본 API URI
         .addConverterFactory(GsonConverterFactory.create())
@@ -415,6 +425,26 @@ fun usepoint(userid_id:Int,reward:Int,navController:NavController,context:Contex
             response: Response<PointReturnModel?>,
         ) {
             if (response.isSuccessful) {
+
+
+                // 기프티콘을 갤러리에 저장합니다.
+                val drawable = getDrawable(context,R.drawable.gifticon)
+                val bitmapDrawable = drawable as BitmapDrawable
+                val bitmap = bitmapDrawable.bitmap
+                val photoFile = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS", Locale.KOREA).format(System.currentTimeMillis()) + ".jpg"
+                )
+                val fos: FileOutputStream? = FileOutputStream(photoFile);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                fos?.flush();
+                MediaScannerConnection.scanFile(context, arrayOf(photoFile.getAbsolutePath()), null, null) // 미디어 스캐닝
+                fos?.close();
+
+
+
+
+
 
                 Log.e("","교환 성공!")
                 //Log.e("",response.body()!!.point.toString())

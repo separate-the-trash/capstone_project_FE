@@ -240,7 +240,7 @@ class MainActivity : ComponentActivity() {
                     AddPosts(navController=navController)
                 }
                 composable("Reward") {
-                    Reward(navController=navController)
+                    Reward(navController=navController,outputDirectory)
                 }
                 composable("Camera") {
                     if (!shouldShowPhoto.value) {

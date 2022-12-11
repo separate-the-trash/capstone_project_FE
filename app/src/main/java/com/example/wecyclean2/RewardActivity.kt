@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -40,7 +41,7 @@ class RewardActivity : ComponentActivity() {
 }
 
 @Composable
-fun Reward(navController: NavController) {
+fun Reward(navController: NavController,outputDirectory: File) {
     val context = LocalContext.current
     Column(
         Modifier
@@ -152,7 +153,7 @@ fun Reward(navController: NavController) {
                                                 contentPadding = PaddingValues(0.dp),
                                                 onClick =
                                                 {
-                                                    usepoint(uid_id,100,navController, context )
+                                                    usepoint(uid_id,100,navController, context ,outputDirectory)
                                                 },
                                                 colors = ButtonDefaults.buttonColors(backgroundColor = c_sub_green)
                                             ) {
@@ -207,7 +208,7 @@ fun Reward(navController: NavController) {
                                                 contentPadding = PaddingValues(0.dp),
                                                 onClick =
                                                 {
-                                                    usepoint(uid_id,100,navController, context )
+                                                    usepoint(uid_id,100,navController, context ,outputDirectory)
                                                 },
                                                 colors = ButtonDefaults.buttonColors(backgroundColor = c_sub_green)
                                             ) {
