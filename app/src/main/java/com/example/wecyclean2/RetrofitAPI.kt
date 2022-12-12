@@ -104,7 +104,7 @@ data class PointReturnModel(
 )
 // 서버 주소 안드로이드의 localhost가 10.0.2.2
 //val base_url = "http://10.0.2.2:8080/"
-val base_url = "http://172.30.1.28:8080/"
+val base_url = "http://172.30.1.13:8080/"
 
 
 interface RetrofitAPI {
